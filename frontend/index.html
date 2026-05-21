@@ -158,7 +158,7 @@ input:focus{border-color:var(--teal2);box-shadow:0 0 0 3px rgba(63,185,80,0.1)}
 
 </div>
 <script>
-const API="http://localhost:3000"; // ← เปลี่ยนเป็น Render URL หลัง deploy
+const API="https://ig-checker-by-piachchatkup.onrender.com";
 const $=id=>document.getElementById(id);
 function lg(t,c=''){$('log').style.display='block';const s=document.createElement('span');s.className='lg '+c;s.textContent='~/ig-checker $ '+t;$('log').appendChild(s);$('log').scrollTop=9999}
 function clearAll(){['log','err','results'].forEach(id=>{const e=$(id);e.style.display='none';if(id==='log')e.innerHTML=''});$('stats').style.display='none';$('l1').innerHTML='';$('l2').innerHTML=''}
