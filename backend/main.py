@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -14,25 +15,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-HEADERS = {
-    "X-IG-App-ID": "936619743392459",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Accept": "*/*",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Referer": "https://www.instagram.com/",
-    "Origin": "https://www.instagram.com",
-    "Cookie": f"sessionid={os.environ.get('IG_SESSION_ID', '')}",
-}
-
 class CheckRequest(BaseModel):
     username: str
+
+def get_headers():
+    session_id = os.environ.get("IG_SESSION_ID", "")
+    return {
+        "X-IG-App-ID": "936619743392459",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Referer": "https://www.instagram.com/",
+        "Origin": "https://www.instagram.com",
+        "Connection": "keep-alive",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin",
+        "Cookie": f"sessionid={session_id}; ds_user_id=; csrftoken=missing;",
+    }
 
 async def sleep_random():
     await asyncio.sleep(random.uniform(0.8, 1.5))
 
 async def get_user_id(client: httpx.AsyncClient, username: str):
     url = f"https://www.instagram.com/api/v1/web/search/topsearch/?context=blended&query={username.lower()}&include_reel=false"
-    r = await client.get(url, headers=HEADERS)
+    r = await client.get(url, headers=get_headers())
+    print(f"[get_user_id] status={r.status_code} body={r.text[:300]}")
+    if not r.text.strip():
+        raise HTTPException(status_code=502, detail="Instagram returned empty response. Session may be invalid.")
     data = r.json()
     users = data.get("users", [])
     result = next((u for u in users if u["user"]["username"].lower() == username.lower()), None)
@@ -44,7 +55,10 @@ async def fetch_list(client: httpx.AsyncClient, list_type: str, user_id: str, co
     url = f"https://www.instagram.com/api/v1/friendships/{user_id}/{list_type}/?count={count}"
     if next_max_id:
         url += f"&max_id={next_max_id}"
-    r = await client.get(url, headers=HEADERS)
+    r = await client.get(url, headers=get_headers())
+    print(f"[fetch_list] {list_type} status={r.status_code} body={r.text[:200]}")
+    if not r.text.strip():
+        raise HTTPException(status_code=502, detail=f"Instagram returned empty response for {list_type}")
     data = r.json()
     users = data.get("users", [])
     if data.get("next_max_id"):
@@ -55,26 +69,22 @@ async def fetch_list(client: httpx.AsyncClient, list_type: str, user_id: str, co
 @app.post("/check")
 async def check(req: CheckRequest):
     username = req.username.strip().lstrip("@")
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
         user_id = await get_user_id(client, username)
         if not user_id:
             raise HTTPException(status_code=404, detail="User not found or account is private")
-
         followers_raw = await fetch_list(client, "followers", user_id)
         following_raw = await fetch_list(client, "following", user_id)
 
     followers = {u["username"].lower() for u in followers_raw}
     following = {u["username"].lower() for u in following_raw}
 
-    not_following_back = sorted(following - followers)
-    not_followed_back = sorted(followers - following)
-
     return {
         "username": username,
         "followers_count": len(followers),
         "following_count": len(following),
-        "not_following_back": not_following_back,
-        "not_followed_back": not_followed_back,
+        "not_following_back": sorted(following - followers),
+        "not_followed_back": sorted(followers - following),
     }
 
 @app.get("/")
