@@ -1,511 +1,194 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IG Follow Checker</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --bg: #050a05;
-      --bg2: #090f09;
-      --panel: #0c140c;
-      --border: #1a3a1a;
-      --green: #00ff41;
-      --green-dim: #00cc33;
-      --green-faint: #003310;
-      --green-glow: rgba(0,255,65,0.15);
-      --red: #ff3a3a;
-      --red-faint: #2a0000;
-      --text: #c8f0c8;
-      --muted: #4a7a4a;
-      --mono: 'Share Tech Mono', monospace;
-      --sans: 'Rajdhani', sans-serif;
-    }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>IG Follow Checker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0d1117;
+  --surface:#0d1117;
+  --surface2:#161b22;
+  --border:#21262d;
+  --border2:#30363d;
+  --cyan:#79c0ff;
+  --teal:#56d364;
+  --teal2:#3fb950;
+  --orange:#ffa657;
+  --text:#e6edf3;
+  --muted:#8b949e;
+  --red:#f85149;
+  --red-bg:rgba(248,81,73,0.1);
+  --mono:'Share Tech Mono',monospace;
+  --sans:'Space Grotesk',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--mono);font-size:14px}
+.wrap{max-width:700px;margin:0 auto;padding:40px 20px 80px;position:relative}
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+/* header */
+.tag{font-size:11px;color:var(--muted);letter-spacing:3px;margin-bottom:14px}
+.tag span{color:var(--cyan)}
+.title{font-family:var(--sans);font-size:clamp(26px,6vw,46px);font-weight:700;line-height:1.1;color:var(--text);letter-spacing:-0.5px;margin-bottom:6px}
+.title em{color:var(--teal);font-style:normal}
+.sub{font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:40px}
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--mono);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
+/* terminal box */
+.term{background:var(--surface2);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:16px}
+.term-bar{background:#1c2128;border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:6px}
+.dot{width:10px;height:10px;border-radius:50%}
+.dot.r{background:#f85149}.dot.y{background:#e3b341}.dot.g{background:#3fb950}
+.term-title{font-size:11px;color:var(--muted);margin-left:8px;letter-spacing:1px}
+.term-body{padding:20px}
 
-    /* scanline overlay */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,255,65,0.015) 2px,
-        rgba(0,255,65,0.015) 4px
-      );
-      pointer-events: none;
-      z-index: 9999;
-    }
+/* input */
+.input-row{display:flex;gap:8px;flex-wrap:wrap}
+input[type=text]{
+  flex:1;min-width:180px;background:var(--bg);
+  border:1px solid var(--border2);border-radius:6px;
+  color:var(--cyan);font-family:var(--mono);font-size:14px;
+  padding:10px 14px;outline:none;transition:border-color .2s,box-shadow .2s
+}
+input::placeholder{color:var(--muted)}
+input:focus{border-color:var(--teal2);box-shadow:0 0 0 3px rgba(63,185,80,0.1)}
+.btn{
+  background:#238636;border:1px solid #2ea043;
+  color:#fff;font-family:var(--mono);font-size:13px;
+  padding:10px 22px;border-radius:6px;cursor:pointer;
+  letter-spacing:1px;transition:all .15s;white-space:nowrap;font-weight:500
+}
+.btn:hover:not(:disabled){background:#2ea043}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.note{font-size:11px;color:var(--muted);margin-top:10px}
 
-    /* grid bg */
-    body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(var(--border) 1px, transparent 1px),
-        linear-gradient(90deg, var(--border) 1px, transparent 1px);
-      background-size: 40px 40px;
-      opacity: 0.3;
-      pointer-events: none;
-      z-index: 0;
-    }
+/* log */
+#log{display:none;font-size:12px;color:var(--muted);line-height:1.9;padding:14px 20px;border-top:1px solid var(--border)}
+.lg{display:block}.lg.g{color:var(--teal)}.lg.r{color:var(--red)}
 
-    .wrapper {
-      position: relative;
-      z-index: 1;
-      max-width: 780px;
-      margin: 0 auto;
-      padding: 40px 20px 80px;
-    }
+/* stats */
+#stats{display:none;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.stat{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:16px 20px}
+.stat-n{font-family:var(--sans);font-size:28px;font-weight:700;color:var(--text);display:block}
+.stat-l{font-size:11px;color:var(--muted);letter-spacing:1px;margin-top:2px;display:block}
 
-    /* HEADER */
-    header {
-      text-align: center;
-      margin-bottom: 48px;
-    }
+/* error */
+#err{display:none;background:var(--red-bg);border:1px solid rgba(248,81,73,0.3);border-radius:6px;padding:12px 16px;color:var(--red);font-size:12px;margin-bottom:16px}
 
-    .logo-line {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--muted);
-      letter-spacing: 4px;
-      margin-bottom: 12px;
-      text-transform: uppercase;
-    }
+/* results */
+#results{display:none}
+.section{background:var(--surface2);border:1px solid var(--border);border-radius:6px;margin-bottom:12px;overflow:hidden}
+.sec-head{padding:12px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;border-bottom:1px solid var(--border)}
+.sec-head:hover{background:rgba(255,255,255,0.02)}
+.sec-title{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase}
+.sec-title.r{color:var(--red)}.sec-title.g{color:var(--teal)}
+.badge{font-size:11px;padding:2px 8px;border-radius:20px;font-family:var(--mono)}
+.badge.r{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,81,73,0.3)}
+.badge.g{background:rgba(63,185,80,0.1);color:var(--teal2);border:1px solid rgba(63,185,80,0.3)}
+.chips{padding:12px 14px;display:flex;flex-wrap:wrap;gap:6px;max-height:260px;overflow-y:auto}
+.chip{background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;font-size:12px;text-decoration:none;color:var(--muted);transition:all .15s}
+.chip:hover{border-color:var(--teal2);color:var(--teal)}
+.chip.r:hover{border-color:var(--red);color:var(--red)}
+.empty{padding:18px;font-size:12px;color:var(--muted);text-align:center}
 
-    h1 {
-      font-family: var(--sans);
-      font-size: clamp(32px, 8vw, 58px);
-      font-weight: 700;
-      color: var(--green);
-      text-shadow: 0 0 30px rgba(0,255,65,0.5), 0 0 60px rgba(0,255,65,0.2);
-      letter-spacing: 2px;
-      line-height: 1;
-    }
+/* spinner */
+@keyframes spin{to{transform:rotate(360deg)}}
+.sp{display:inline-block;width:12px;height:12px;border:2px solid rgba(63,185,80,0.2);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px}
 
-    .subtitle {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 10px;
-      letter-spacing: 2px;
-    }
+@keyframes bl{0%,100%{opacity:1}50%{opacity:0}}
+.cur{animation:bl 1s infinite}
 
-    /* BLINK */
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-    .cursor { animation: blink 1s infinite; }
-
-    /* SEARCH BOX */
-    .search-box {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 28px;
-      margin-bottom: 32px;
-      box-shadow: 0 0 40px rgba(0,255,65,0.05), inset 0 1px 0 rgba(0,255,65,0.05);
-    }
-
-    .input-label {
-      font-size: 11px;
-      color: var(--muted);
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      margin-bottom: 10px;
-      display: block;
-    }
-
-    .input-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    input[type="text"] {
-      flex: 1;
-      min-width: 200px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      color: var(--green);
-      font-family: var(--mono);
-      font-size: 16px;
-      padding: 12px 16px;
-      border-radius: 4px;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    input[type="text"]::placeholder { color: var(--muted); }
-    input[type="text"]:focus {
-      border-color: var(--green-dim);
-      box-shadow: 0 0 15px var(--green-glow);
-    }
-
-    button#checkBtn {
-      background: var(--green-faint);
-      border: 1px solid var(--green-dim);
-      color: var(--green);
-      font-family: var(--mono);
-      font-size: 14px;
-      padding: 12px 28px;
-      border-radius: 4px;
-      cursor: pointer;
-      letter-spacing: 2px;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-
-    button#checkBtn:hover:not(:disabled) {
-      background: rgba(0,255,65,0.15);
-      box-shadow: 0 0 20px var(--green-glow);
-    }
-
-    button#checkBtn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-
-    .note {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 12px;
-      letter-spacing: 1px;
-    }
-
-    /* TERMINAL LOG */
-    #log {
-      display: none;
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 16px 20px;
-      margin-bottom: 24px;
-      font-size: 12px;
-      color: var(--muted);
-      min-height: 60px;
-      max-height: 120px;
-      overflow-y: auto;
-      line-height: 1.8;
-    }
-
-    #log .log-line { display: block; }
-    #log .log-line.green { color: var(--green-dim); }
-    #log .log-line.red { color: var(--red); }
-
-    /* STATS */
-    #stats {
-      display: none;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-
-    .stat-card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 18px;
-      text-align: center;
-    }
-
-    .stat-num {
-      font-family: var(--sans);
-      font-size: 36px;
-      font-weight: 700;
-      color: var(--green);
-      display: block;
-    }
-
-    .stat-label {
-      font-size: 10px;
-      color: var(--muted);
-      letter-spacing: 2px;
-      text-transform: uppercase;
-    }
-
-    /* RESULTS */
-    #results { display: none; }
-
-    .result-section {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      margin-bottom: 16px;
-      overflow: hidden;
-    }
-
-    .result-header {
-      padding: 14px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid var(--border);
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .result-header:hover { background: rgba(0,255,65,0.03); }
-
-    .result-title {
-      font-family: var(--sans);
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-    }
-
-    .result-title.red { color: var(--red); }
-    .result-title.green { color: var(--green); }
-
-    .badge {
-      font-size: 11px;
-      padding: 3px 10px;
-      border-radius: 20px;
-      font-family: var(--mono);
-    }
-
-    .badge.red { background: var(--red-faint); color: var(--red); border: 1px solid rgba(255,58,58,0.3); }
-    .badge.green { background: var(--green-faint); color: var(--green-dim); border: 1px solid rgba(0,204,51,0.3); }
-
-    .user-list {
-      padding: 12px 16px;
-      max-height: 300px;
-      overflow-y: auto;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .user-chip {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      padding: 5px 12px;
-      font-size: 12px;
-      text-decoration: none;
-      transition: all 0.15s;
-    }
-
-    .user-chip:hover {
-      border-color: var(--green-dim);
-      color: var(--green);
-      box-shadow: 0 0 8px var(--green-glow);
-    }
-
-    .user-chip.red { color: var(--red); }
-    .user-chip.green { color: var(--green-dim); }
-
-    .empty-msg {
-      padding: 20px;
-      font-size: 12px;
-      color: var(--muted);
-      text-align: center;
-      letter-spacing: 1px;
-    }
-
-    /* ERROR */
-    #error-box {
-      display: none;
-      background: var(--red-faint);
-      border: 1px solid rgba(255,58,58,0.3);
-      border-radius: 4px;
-      padding: 16px 20px;
-      color: var(--red);
-      font-size: 13px;
-      margin-bottom: 16px;
-    }
-
-    /* LOADING spinner */
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .spinner {
-      display: inline-block;
-      width: 14px;
-      height: 14px;
-      border: 2px solid var(--green-faint);
-      border-top-color: var(--green);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      vertical-align: middle;
-      margin-right: 8px;
-    }
-
-    /* SCROLLBAR */
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-    /* mobile */
-    @media (max-width: 480px) {
-      .input-row { flex-direction: column; }
-      button#checkBtn { width: 100%; }
-      #stats { grid-template-columns: 1fr 1fr; }
-    }
-  </style>
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+@media(max-width:480px){.input-row{flex-direction:column}.btn{width:100%}#stats{grid-template-columns:1fr 1fr}}
+</style>
 </head>
 <body>
-<div class="wrapper">
+<div class="wrap">
 
-  <header>
-    <div class="logo-line">// system ready</div>
-    <h1>IG FOLLOW<br>CHECKER<span class="cursor">_</span></h1>
-    <div class="subtitle">[ PUBLIC ACCOUNTS ONLY ]</div>
-  </header>
+  <div class="tag">// <span>IG_CHECKER</span> — initialized — v1.0.0</div>
+  <div class="title">Follow<em>Check</em><span class="cur">_</span></div>
+  <div class="sub">PUBLIC ACCOUNTS ONLY · NO LOGIN REQUIRED</div>
 
-  <div class="search-box">
-    <label class="input-label" for="username">→ instagram username</label>
-    <div class="input-row">
-      <input type="text" id="username" placeholder="@username" autocomplete="off" autocorrect="off" spellcheck="false" />
-      <button id="checkBtn" onclick="runCheck()">RUN_</button>
+  <div class="term">
+    <div class="term-bar">
+      <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+      <span class="term-title">bash — ig-checker</span>
     </div>
-    <div class="note">⚠ works with public accounts only · no login required</div>
+    <div class="term-body">
+      <div style="margin-bottom:12px;font-size:12px;color:var(--muted)">~/ig-checker $ <span style="color:var(--cyan)">run --username</span></div>
+      <div class="input-row">
+        <input type="text" id="username" placeholder="piachchatkup" autocomplete="off" autocorrect="off" spellcheck="false"/>
+        <button class="btn" id="btn" onclick="run()">▶ RUN</button>
+      </div>
+      <div class="note">⚠ private accounts will not work</div>
+    </div>
+    <div id="log"></div>
   </div>
 
-  <div id="error-box"></div>
-  <div id="log"></div>
+  <div id="err"></div>
 
-  <div id="stats" style="display:none; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px;">
-    <div class="stat-card">
-      <span class="stat-num" id="stat-followers">0</span>
-      <span class="stat-label">Followers</span>
+  <div id="stats">
+    <div class="stat">
+      <span class="stat-n" id="sfl">0</span>
+      <span class="stat-l">Followers</span>
     </div>
-    <div class="stat-card">
-      <span class="stat-num" id="stat-following">0</span>
-      <span class="stat-label">Following</span>
+    <div class="stat">
+      <span class="stat-n" id="sfg">0</span>
+      <span class="stat-l">Following</span>
     </div>
   </div>
 
   <div id="results">
-    <div class="result-section">
-      <div class="result-header" onclick="toggleSection('list-nfb', this)">
-        <span class="result-title red">NOT FOLLOWING BACK</span>
-        <span class="badge red" id="badge-nfb">0</span>
+    <div class="section">
+      <div class="sec-head" onclick="tog('l1')">
+        <span class="sec-title r">⚠ Not following back</span>
+        <span class="badge r" id="b1">0</span>
       </div>
-      <div id="list-nfb" class="user-list"></div>
+      <div id="l1" class="chips"></div>
     </div>
-
-    <div class="result-section">
-      <div class="result-header" onclick="toggleSection('list-dnfb', this)">
-        <span class="result-title green">YOU DON'T FOLLOW BACK</span>
-        <span class="badge green" id="badge-dnfb">0</span>
+    <div class="section">
+      <div class="sec-head" onclick="tog('l2')">
+        <span class="sec-title g">✓ You don't follow back</span>
+        <span class="badge g" id="b2">0</span>
       </div>
-      <div id="list-dnfb" class="user-list"></div>
+      <div id="l2" class="chips"></div>
     </div>
   </div>
 
 </div>
-
 <script>
-  // ← ตรงนี้เปลี่ยน URL เป็น backend จริงของมึง
-  const API_BASE = "http://localhost:8000";
-
-  const logEl = document.getElementById("log");
-  const errEl = document.getElementById("error-box");
-  const statsEl = document.getElementById("stats");
-  const resultsEl = document.getElementById("results");
-
-  function log(msg, type = "") {
-    logEl.style.display = "block";
-    const line = document.createElement("span");
-    line.className = `log-line ${type}`;
-    line.textContent = `> ${msg}`;
-    logEl.appendChild(line);
-    logEl.scrollTop = logEl.scrollHeight;
-  }
-
-  function clearAll() {
-    logEl.innerHTML = "";
-    logEl.style.display = "none";
-    errEl.style.display = "none";
-    statsEl.style.display = "none";
-    resultsEl.style.display = "none";
-    document.getElementById("list-nfb").innerHTML = "";
-    document.getElementById("list-dnfb").innerHTML = "";
-  }
-
-  function showError(msg) {
-    errEl.textContent = `✗ ${msg}`;
-    errEl.style.display = "block";
-  }
-
-  function renderList(containerId, badgeId, users, colorClass) {
-    const el = document.getElementById(containerId);
-    const badge = document.getElementById(badgeId);
-    badge.textContent = users.length;
-    if (users.length === 0) {
-      el.innerHTML = `<div class="empty-msg">— none found —</div>`;
-      return;
-    }
-    el.innerHTML = users.map(u =>
-      `<a class="user-chip ${colorClass}" href="https://instagram.com/${u}" target="_blank" rel="noopener">@${u}</a>`
-    ).join("");
-  }
-
-  function toggleSection(id, header) {
-    const el = document.getElementById(id);
-    el.style.display = el.style.display === "none" ? "flex" : "none";
-  }
-
-  async function runCheck() {
-    const raw = document.getElementById("username").value.trim().replace(/^@/, "");
-    if (!raw) return;
-
-    clearAll();
-
-    const btn = document.getElementById("checkBtn");
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner"></span>SCANNING_`;
-
-    log(`initiating scan for @${raw}...`);
-    log(`connecting to instagram api...`);
-
-    try {
-      const res = await fetch(`${API_BASE}/check`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: raw })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.detail || "Something went wrong");
-      }
-
-      log(`fetched ${data.followers_count} followers · ${data.following_count} following`, "green");
-      log(`analysis complete.`, "green");
-
-      statsEl.style.display = "grid";
-      document.getElementById("stat-followers").textContent = data.followers_count;
-      document.getElementById("stat-following").textContent = data.following_count;
-
-      resultsEl.style.display = "block";
-      renderList("list-nfb", "badge-nfb", data.not_following_back, "red");
-      renderList("list-dnfb", "badge-dnfb", data.not_followed_back, "green");
-
-    } catch (e) {
-      log(`error: ${e.message}`, "red");
-      showError(e.message);
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = "RUN_";
-    }
-  }
-
-  document.getElementById("username").addEventListener("keydown", e => {
-    if (e.key === "Enter") runCheck();
-  });
+const API="http://localhost:3000"; // ← เปลี่ยนเป็น Render URL หลัง deploy
+const $=id=>document.getElementById(id);
+function lg(t,c=''){$('log').style.display='block';const s=document.createElement('span');s.className='lg '+c;s.textContent='~/ig-checker $ '+t;$('log').appendChild(s);$('log').scrollTop=9999}
+function clearAll(){['log','err','results'].forEach(id=>{const e=$(id);e.style.display='none';if(id==='log')e.innerHTML=''});$('stats').style.display='none';$('l1').innerHTML='';$('l2').innerHTML=''}
+function showErr(m){$('err').textContent='✗ error: '+m;$('err').style.display='block'}
+function tog(id){const e=$(id);e.style.display=e.style.display==='none'?'flex':'none'}
+function chips(cid,bid,list,cls){
+  $(bid).textContent=list.length;
+  const el=$(cid);
+  if(!list.length){el.innerHTML='<div class="empty">— none —</div>';return}
+  el.innerHTML=list.map(u=>`<a class="chip ${cls}" href="https://instagram.com/${u}" target="_blank" rel="noopener">@${u}</a>`).join('')
+}
+async function run(){
+  const u=$('username').value.trim().replace(/^@/,'');
+  if(!u)return;
+  clearAll();
+  const btn=$('btn');btn.disabled=true;btn.innerHTML='<span class="sp"></span>scanning...';
+  lg(`fetching data for @${u}...`);
+  try{
+    const res=await fetch(`${API}/check`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u})});
+    const d=await res.json();
+    if(!res.ok)throw new Error(d.detail||'request failed');
+    lg(`done. ${d.followers_count} followers · ${d.following_count} following`,'g');
+    $('stats').style.display='grid';$('sfl').textContent=d.followers_count;$('sfg').textContent=d.following_count;
+    $('results').style.display='block';
+    chips('l1','b1',d.not_following_back,'r');
+    chips('l2','b2',d.not_followed_back,'g');
+  }catch(e){lg('error: '+e.message,'r');showErr(e.message)}
+  finally{btn.disabled=false;btn.innerHTML='▶ RUN'}
+}
+$('username').addEventListener('keydown',e=>{if(e.key==='Enter')run()});
 </script>
 </body>
 </html>
