@@ -5,6 +5,7 @@ from pydantic import BaseModel
 import httpx
 import asyncio
 import random
+from datetime import datetime
 
 app = FastAPI()
 
@@ -34,6 +35,31 @@ def get_headers():
         "Sec-Fetch-Site": "same-origin",
         "Cookie": f"sessionid={session_id}; ds_user_id=; csrftoken=missing;",
     }
+
+async def send_discord(username: str, followers: int, following: int, not_following_back: int, not_followed_back: int):
+    webhook_url = os.environ.get("DISCORD_WEBHOOK", "")
+    if not webhook_url:
+        return
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    payload = {
+        "embeds": [{
+            "title": "🔍 IG Follow Checker — New Search",
+            "color": 0x00FF94,
+            "fields": [
+                {"name": "Username", "value": f"`@{username}`", "inline": True},
+                {"name": "Time", "value": now, "inline": True},
+                {"name": "Followers", "value": str(followers), "inline": True},
+                {"name": "Following", "value": str(following), "inline": True},
+                {"name": "Not Following Back", "value": str(not_following_back), "inline": True},
+                {"name": "You Don't Follow Back", "value": str(not_followed_back), "inline": True},
+            ]
+        }]
+    }
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            await client.post(webhook_url, json=payload)
+    except Exception as e:
+        print(f"[discord] failed: {e}")
 
 async def sleep_random():
     await asyncio.sleep(random.uniform(0.8, 1.5))
@@ -79,12 +105,17 @@ async def check(req: CheckRequest):
     followers = {u["username"].lower() for u in followers_raw}
     following = {u["username"].lower() for u in following_raw}
 
+    not_following_back = sorted(following - followers)
+    not_followed_back = sorted(followers - following)
+
+    await send_discord(username, len(followers), len(following), len(not_following_back), len(not_followed_back))
+
     return {
         "username": username,
         "followers_count": len(followers),
         "following_count": len(following),
-        "not_following_back": sorted(following - followers),
-        "not_followed_back": sorted(followers - following),
+        "not_following_back": not_following_back,
+        "not_followed_back": not_followed_back,
     }
 
 @app.get("/")
