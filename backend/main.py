@@ -62,7 +62,7 @@ async def send_discord(username: str, followers: int, following: int, not_follow
         print(f"[discord] failed: {e}")
 
 async def sleep_random():
-    await asyncio.sleep(random.uniform(0.8, 1.5))
+    await asyncio.sleep(random.uniform(2.0, 4.0))
 
 async def get_user_id(client: httpx.AsyncClient, username: str):
     url = f"https://www.instagram.com/api/v1/web/search/topsearch/?context=blended&query={username.lower()}&include_reel=false"
@@ -95,7 +95,7 @@ async def fetch_list(client: httpx.AsyncClient, list_type: str, user_id: str, co
 @app.post("/check")
 async def check(req: CheckRequest):
     username = req.username.strip().lstrip("@")
-    async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
+    async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
         user_id = await get_user_id(client, username)
         if not user_id:
             raise HTTPException(status_code=404, detail="User not found or account is private")
